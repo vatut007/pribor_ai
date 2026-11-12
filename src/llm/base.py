@@ -15,10 +15,11 @@ BaseLLMClient — абстракция: чтобы добавить своего
 
 from __future__ import annotations
 
+import time
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, Iterator
+from typing import Any, Callable, Iterator
 
 import requests
 
@@ -30,7 +31,8 @@ class LLMError(Exception):
 
 
 class LLMTimeoutError(LLMError):
-    """Провайдер не ответил за отведённое время или соединение не установлено."""
+    """Провайдер не ответил за отведённое время
+    или соединение не установлено."""
 
 
 class LLMRateLimitError(LLMError):
@@ -40,13 +42,19 @@ class LLMRateLimitError(LLMError):
 class LLMResponseError(LLMError):
     """Провайдер ответил невалидно: HTTP-ошибка или не-JSON тело."""
 
-    def __init__(self, message: str, *, status_code: int | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        status_code: int | None = None,
+    ) -> None:
         super().__init__(message)
         self.status_code = status_code
 
 
 class LLMConfigError(LLMError):
-    """Провайдер не сконфигурирован: отсутствуют обязательные переменные окружения."""
+    """Провайдер не сконфигурирован: нет обязательных
+    переменных окружения."""
 
 
 @dataclass
@@ -59,7 +67,9 @@ class LLMMessage:
     def __post_init__(self) -> None:
         if self.role not in ALLOWED_ROLES:
             allowed = ", ".join(ALLOWED_ROLES)
-            raise ValueError(f"Недопустимая роль {self.role!r}; допустимы: {allowed}")
+            raise ValueError(
+                f"Недопустимая роль {self.role!r}; допустимы: {allowed}"
+            )
 
 
 @dataclass
@@ -113,9 +123,41 @@ def translate_errors(timeout: float) -> Iterator[None]:
     except requests.HTTPError as e:
         status = e.response.status_code if e.response is not None else None
         if status == 429:
-            raise LLMRateLimitError("Превышен лимит запросов к LLM (HTTP 429)") from e
+            raise LLMRateLimitError(
+                "Превышен лимит запросов к LLM (HTTP 429)"
+            ) from e
         raise LLMResponseError(
             f"LLM вернул HTTP-ошибку {status}: {e}", status_code=status
         ) from e
     except requests.RequestException as e:
         raise LLMError(f"Ошибка сети при обращении к LLM: {e}") from e
+
+
+def run_with_retries(
+    attempt: Callable[[], LLMResponse],
+    *,
+    max_retries: int,
+    on_retry: Callable[[int, LLMError], None] | None = None,
+) -> LLMResponse:
+    """Ретраи с экспоненциальным backoff на 429/5xx (п. 5.2 плана).
+
+    attempt() должен бросать доменные исключения (см. translate_errors).
+    Повторяются только LLMRateLimitError и LLMResponseError со статусом
+    5xx; остальные ошибки (в т.ч. таймауты) выходят сразу. Задержки —
+    1, 2, 4 с (растут вдвое, максимум 8 с).
+    """
+    for attempt_no in range(1, max_retries + 1):
+        try:
+            return attempt()
+        except (LLMRateLimitError, LLMResponseError) as e:
+            retriable = isinstance(e, LLMRateLimitError) or (
+                isinstance(e, LLMResponseError)
+                and e.status_code is not None
+                and e.status_code >= 500
+            )
+            if not retriable or attempt_no == max_retries:
+                raise
+            if on_retry is not None:
+                on_retry(attempt_no, e)
+            time.sleep(min(2 ** (attempt_no - 1), 8))
+    raise AssertionError("run_with_retries: недостижимая ветка")
