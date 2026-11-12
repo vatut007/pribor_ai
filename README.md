@@ -17,6 +17,20 @@ LLM: **YandexGPT** — основной, любой **OpenAI-совместим�
 отсутствующее во входных данных. Подробности: [docs/PROMPTS.md](docs/PROMPTS.md),
 ограничения: [docs/LIMITATIONS.md](docs/LIMITATIONS.md).
 
+## Как это работает
+
+```
+входной JSON → валидация → промпт (8 жёстких правил) → LLM →
+парсинг строгого JSON (1 ретрай) → верификатор чисел → карточка
+```
+
+- Выдуманное число в характеристиках → значение заменяется на
+  «данных нет», имя характеристики попадает в `missing_fields`.
+- Выдуманное число в SEO-описании → одна перегенерация с указанием
+  причины; если и после неё остались чужие числа — ошибка без карточки.
+- Инвариант: в возвращаемой карточке нет ни одного числа, которого
+  нет во входных данных.
+
 ## Требования
 
 - Python **3.10+** (проверено на 3.12);
@@ -96,7 +110,7 @@ uvicorn app:app --reload
 ```bash
 curl -s -X POST -H "Content-Type: application/json" \
   --data-binary @examples/testo_510_input.json \
-  http://127.0.0.1:8000/generate?format=md
+  'http://127.0.0.1:8000/generate?format=md'
 ```
 
 ## Регенерация примеров YandexGPT
@@ -113,6 +127,14 @@ LLM_PROVIDER=yandexgpt python main.py examples/testo_510_input.json --format md 
 `YC_FOLDER_ID` и `YC_API_KEY` (или `YC_IAM_TOKEN`) в `.env`.
 
 ## Пример входного JSON
+
+| Поле | Тип | Обязательное |
+|---|---|---|
+| `name` | строка | да |
+| `manufacturer` | строка | да |
+| `category` | строка | нет |
+| `specs` | объект «название → значение» | нет |
+| `description` | строка | нет |
 
 ```json
 {
@@ -158,6 +180,19 @@ src/
 app.py           # FastAPI: POST /generate + GET / (форма)
 main.py          # CLI
 templates/       # form.html
+tests/           # 41 тест: валидатор, верификатор, генератор, CLI, API
 examples/        # входные и сгенерированные карточки (json + md)
 docs/            # PROMPTS.md, LIMITATIONS.md, план
+requirements.txt # зафиксированные зависимости (экспорт uv)
+.env.example     # шаблон переменных окружения
 ```
+
+## Документация
+
+- [docs/PROMPTS.md](docs/PROMPTS.md) — полные тексты промптов,
+  обоснование каждого правила, устройство верификатора, принятые
+  решения (модель, температура, ретраи);
+- [docs/LIMITATIONS.md](docs/LIMITATIONS.md) — ограничения прототипа
+  (что верификатор не ловит, нет батча и кэша) и возможные улучшения;
+- [examples/](examples/) — входные JSON и сгенерированные карточки
+  (JSON + Markdown) для двух приборов.
