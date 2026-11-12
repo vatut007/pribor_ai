@@ -193,7 +193,6 @@ def verify_output(
 
     sources: list[tuple[str, str, str]] = []
     for spec in output.specs:
-        sources.append(("specs", spec.name, spec.name))
         sources.append(("specs", spec.name, spec.value))
     sources.append(("seo_description", "", output.seo_description))
 
