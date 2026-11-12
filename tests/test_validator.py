@@ -1,8 +1,12 @@
-"""Тесты валидатора входа (п. 6.5): битый JSON, пустые поля, неверные типы."""
+"""Тесты валидатора входа: битый JSON, пустые поля, неверные типы."""
 
 import pytest
 
-from src.validator import EXPECTED_CHARACTERISTICS, InvalidInputError, validate_input
+from src.validator import (
+    EXPECTED_CHARACTERISTICS,
+    InvalidInputError,
+    validate_input,
+)
 
 VALID = {
     "name": "Дифференциальный манометр testo 510",
@@ -22,7 +26,8 @@ VALID = {
 def test_valid_full_input():
     res = validate_input(dict(VALID))
     assert res.product.manufacturer == "Testo"
-    # не заявлены только «интерфейсы»; «класс точности» заявлен, но с пустым значением
+    # не заявлены только «интерфейсы»;
+    # «класс точности» заявлен, но с пустым значением
     assert res.missing_fields == ["интерфейсы", "класс точности"]
 
 
@@ -62,7 +67,9 @@ def test_missing_required_field():
 
 def test_wrong_types():
     with pytest.raises(InvalidInputError) as ei:
-        validate_input({"name": "x", "manufacturer": "y", "specs": ["не", "словарь"]})
+        validate_input(
+            {"name": "x", "manufacturer": "y", "specs": ["не", "словарь"]}
+        )
     assert "specs" in str(ei.value)
 
     with pytest.raises(InvalidInputError) as ei:

@@ -1,4 +1,4 @@
-"""Провайдер YandexGPT (Yandex Cloud Foundation Models), п. 5.2 плана.
+"""Провайдер YandexGPT (Yandex Cloud Foundation Models).
 
 Авторизация: Authorization: Api-key <YC_API_KEY> или Bearer <YC_IAM_TOKEN>;
 плюс заголовок x-folder-id. Модель: gpt://<folder>/<модель>. Ретраи на

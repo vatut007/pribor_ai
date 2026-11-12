@@ -1,4 +1,4 @@
-"""OpenAI-совместимый провайдер (п. 5.3 плана).
+"""OpenAI-совместимый провайдер.
 
 Работает с любым endpoint формата OpenAI: OpenAI, DeepSeek, локальные
 Ollama/vLLM/LM Studio через LLM_BASE_URL. Endpoint:

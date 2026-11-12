@@ -1,4 +1,4 @@
-"""Тесты FastAPI (п. 7.1): /generate в форматах json/md, ошибки
+"""Тесты FastAPI: /generate в форматах json/md, ошибки
 422/502/503, GET / с формой. LLM подменяется фейковым клиентом."""
 
 import json
@@ -33,7 +33,7 @@ def _pad(text: str) -> str:
 
 
 def _valid_payload() -> dict:
-    """Валидная карточка: все числа — из входа testo 510 (п. 3.3)."""
+    """Валидная карточка: все числа — из входа testo 510."""
     return {
         "seo_title": "Манометр testo 510 — измерение перепада давления",
         "seo_description": _pad(

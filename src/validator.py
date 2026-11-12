@@ -1,4 +1,4 @@
-"""Валидатор входного JSON (п. 6.5 плана).
+"""Валидатор входного JSON.
 
 Разбирает JSON с понятной ошибкой и позицией, проверяет структуру через
 pydantic-модель ProductInput и готовит отчёт missing_fields: какие
@@ -17,7 +17,8 @@ from .models import ProductInput
 
 
 class InvalidInputError(ValueError):
-    """Некорректный вход: битый JSON, неверная структура, типы или пустые поля."""
+    """Некорректный вход: битый JSON, неверная структура,
+    типы или пустые поля."""
 
 
 @dataclass
@@ -28,7 +29,7 @@ class ValidationResult:
     missing_fields: list[str] = field(default_factory=list)
 
 
-# «Ожидаемые характеристики» из п. 6.5: если ни одно из ключевых слов не
+# «Ожидаемые характеристики»: если ни одно из ключевых слов не
 # встречается среди ключей specs — характеристика считается отсутствующей.
 EXPECTED_CHARACTERISTICS: list[tuple[str, tuple[str, ...]]] = [
     ("диапазон измерений", ("диапазон",)),
@@ -61,7 +62,8 @@ def parse_json(raw: str) -> dict:
     if not isinstance(data, dict):
         kind = type(data).__name__
         raise InvalidInputError(
-            f"Ожидался JSON-объект с полями name/manufacturer/specs, получен {kind}"
+            f"Ожидался JSON-объект с полями name/manufacturer/specs, "
+            f"получен {kind}"
         )
     return data
 
@@ -77,7 +79,8 @@ def _format_pydantic_error(e: PydanticValidationError) -> str:
 
 
 def _collect_missing_fields(specs: dict[str, str]) -> list[str]:
-    """Ожидаемые характеристики без данных + заявленные ключи с пустым значением."""
+    """Ожидаемые характеристики без данных
+    + заявленные ключи с пустым значением."""
     keys_lower = [k.lower() for k in specs]
     missing: list[str] = []
     for label, keywords in EXPECTED_CHARACTERISTICS:
@@ -107,18 +110,30 @@ def validate_input(raw: str | dict) -> ValidationResult:
     try:
         product = ProductInput.model_validate(data)
     except PydanticValidationError as e:
-        raise InvalidInputError(f"Некорректный вход: {_format_pydantic_error(e)}") from e
+        raise InvalidInputError(
+            f"Некорректный вход: {_format_pydantic_error(e)}"
+        ) from e
 
     # пустые (в т.ч. из одних пробелов) обязательные поля — тоже «нет данных»
-    empty = [f for f in ("name", "manufacturer") if not getattr(product, f).strip()]
+    empty = [
+        f
+        for f in ("name", "manufacturer")
+        if not getattr(product, f).strip()
+    ]
     if empty:
-        raise InvalidInputError(f"Пустые обязательные поля: {', '.join(empty)}")
+        raise InvalidInputError(
+            f"Пустые обязательные поля: {', '.join(empty)}"
+        )
 
     product = product.model_copy(
         update={
             "name": product.name.strip(),
             "manufacturer": product.manufacturer.strip(),
-            "category": product.category.strip() if product.category else product.category,
+            "category": (
+                product.category.strip()
+                if product.category
+                else product.category
+            ),
             "description": product.description.strip(),
             "specs": {k.strip(): v.strip() for k, v in product.specs.items()},
         }

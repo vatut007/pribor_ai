@@ -1,4 +1,4 @@
-"""База LLM-слоя (п. 5.1 плана).
+"""База LLM-слоя.
 
 LLMMessage / LLMResponse — структуры данных, общие для всех провайдеров.
 BaseLLMClient — абстракция: чтобы добавить своего провайдера, достаточно
@@ -107,7 +107,7 @@ class BaseLLMClient(ABC):
 
 @contextmanager
 def translate_errors(timeout: float) -> Iterator[None]:
-    """Единая обёртка ошибок HTTP-вызова в доменные исключения (п. 5.1).
+    """Единая обёртка ошибок HTTP-вызова в доменные исключения.
 
     Провайдеры оборачивают сюда запрос и raise_for_status(). Порядок
     except-веток важен: JSONDecodeError — подкласс RequestException.
@@ -139,7 +139,7 @@ def run_with_retries(
     max_retries: int,
     on_retry: Callable[[int, LLMError], None] | None = None,
 ) -> LLMResponse:
-    """Ретраи с экспоненциальным backoff на 429/5xx (п. 5.2 плана).
+    """Ретраи с экспоненциальным backoff на 429/5xx.
 
     attempt() должен бросать доменные исключения (см. translate_errors).
     Повторяются только LLMRateLimitError и LLMResponseError со статусом

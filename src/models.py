@@ -1,4 +1,4 @@
-"""Pydantic-схемы входа и выхода (п. 6.3 плана).
+"""Pydantic-схемы входа и выхода.
 
 ProductInput      — JSON, который клиент присылает в POST /generate и в CLI.
 SpecItem          — одна строка списка характеристик карточки.
@@ -18,14 +18,17 @@ SEARCH_QUERIES_MAX = 5
 class ProductInput(BaseModel):
     """Входные данные о приборе.
 
-    Обязательные поля: name и manufacturer (п. 6.5).
+    Обязательные поля: name и manufacturer.
     specs — словарь «характеристика → значение». Отсутствие описания и
     части характеристик — нормальный случай: они попадут в missing_fields.
     """
 
     name: str = Field(min_length=1, description="Название прибора")
     manufacturer: str = Field(min_length=1, description="Производитель")
-    category: str | None = Field(default=None, description="Категория прибора (опционально)")
+    category: str | None = Field(
+        default=None,
+        description="Категория прибора (опционально)",
+    )
     specs: dict[str, str] = Field(
         default_factory=dict,
         description="Характеристики прибора: ключ → значение",
@@ -44,7 +47,7 @@ class SpecItem(BaseModel):
 
 
 class ProductCardOutput(BaseModel):
-    """Черновик карточки товара: строгий JSON-ответ LLM (п. 6.3)."""
+    """Черновик карточки товара: строгий JSON-ответ LLM."""
 
     seo_title: str = Field(
         max_length=SEO_TITLE_MAX_LEN,
@@ -55,16 +58,23 @@ class ProductCardOutput(BaseModel):
         max_length=SEO_DESCRIPTION_MAX_LEN,
         description="SEO-описание, 800–1200 символов",
     )
-    specs: list[SpecItem] = Field(description="Ключевые характеристики из входных данных")
+    specs: list[SpecItem] = Field(
+        description="Ключевые характеристики из входных данных"
+    )
     search_queries: list[str] = Field(
         min_length=SEARCH_QUERIES_MIN,
         max_length=SEARCH_QUERIES_MAX,
         description="Поисковые запросы, 3–5 шт.",
     )
     commercial_block: str = Field(
-        description="Кому подходит прибор и какие задачи решает (для менеджера)",
+        description=(
+            "Кому подходит прибор и какие задачи решает (для менеджера)"
+        ),
     )
     missing_fields: list[str] = Field(
         default_factory=list,
-        description="Характеристики, которых нет во входе (в карточке — «данных нет»)",
+        description=(
+            "Характеристики, которых нет во входе "
+            "(в карточке — «данных нет»)"
+        ),
     )

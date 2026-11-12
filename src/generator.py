@@ -1,15 +1,15 @@
-"""Генератор карточки товара — оркестрация пайплайна (п. 4, 6.3, 6.4).
+"""Генератор карточки товара — оркестрация пайплайна.
 
 Шаги: validate → prompt → LLM → parse (один ретрай) → verify → output.
 
 Политика повторов. На невалидный ответ LLM (не JSON, не по схеме,
 обрезан) отправляется ровно ОДИН повторный запрос с уточнением
-RETRY_PROMPT (п. 6.3). Выдуманные числа в seo_description тоже ведут
-к одному повторному запросу (п. 6.4.3: «повторная генерация»); оба
+RETRY_PROMPT. Выдуманные числа в seo_description тоже ведут
+к одному повторному запросу («повторная генерация»); оба
 повтора делят общий бюджет из двух попыток. Выдуманные числа в
 значениях specs перегенерации не требуют: значение заменяется на
 «данных нет», имя характеристики добавляется в missing_fields
-(п. 6.4.3: «удаление»).
+(«удаление»).
 
 Инвариант: карточка в GenerationResult всегда проходит верификатор
 (verification.ok); иначе бросается GenerationError.
@@ -38,7 +38,7 @@ class GenerationError(Exception):
 
 @dataclass
 class GenerationResult:
-    """Итог генерации: карточка + прозрачность процесса (п. 6.4.4)."""
+    """Итог генерации: карточка + прозрачность процесса."""
 
     card: ProductCardOutput
     verification: VerificationReport
@@ -50,7 +50,7 @@ _JSON_BLOCK_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
 
 
 def _extract_json_text(text: str) -> str:
-    """Вырезает JSON из ответа модели (п. 6.3: «может обернуть в ```»)."""
+    """Вырезает JSON из ответа модели (модель может обернуть его в ```)."""
     stripped = text.strip()
     fenced = _JSON_BLOCK_RE.search(stripped)
     if fenced:
@@ -94,7 +94,7 @@ def _replace_hallucinated_specs(
     card: ProductCardOutput,
     names: set[str],
 ) -> ProductCardOutput:
-    """Выдуманные числа в specs → «данных нет» (п. 6.4.3: удаление)."""
+    """Выдуманные числа в specs → «данных нет» (удаление)."""
     if not names:
         return card
     specs = [
