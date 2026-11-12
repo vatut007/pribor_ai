@@ -117,7 +117,7 @@ def test_invalid_input_exit_2(
     broken = tmp_path / "broken.json"
     broken.write_text("{битый json", encoding="utf-8")
     assert main([str(broken)]) == 2
-    assert "Некорректный вход" in capsys.readouterr().err
+    assert "Некорректный JSON" in capsys.readouterr().err
     assert fake_ok.calls == 0  # до LLM дело не дошло
 
 

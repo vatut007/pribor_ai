@@ -68,7 +68,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         result = generate_card(raw, provider=args.provider)
     except InvalidInputError as e:
-        print(f"Некорректный вход: {e}", file=sys.stderr)
+        # сообщение валидатора уже начинается с «Некорректный вход: …»
+        print(str(e), file=sys.stderr)
         return 2
     except GenerationError as e:
         print(f"Генерация не удалась: {e}", file=sys.stderr)

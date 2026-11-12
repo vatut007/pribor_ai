@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Генератор карточек приборов</title>
+</head>
+<body style="font-family: system-ui, sans-serif; max-width: 1000px; margin: 24px auto; padding: 0 16px; color: #1a1a1a;">
+<h1 style="margin-bottom: 4px;">Генератор карточек приборов</h1>
+<p style="color: #555; margin-top: 0;">Вставьте JSON товара и нажмите «Сгенерировать». Результат появится справа; его можно скопировать кнопкой.</p>
+<div style="display: flex; gap: 16px; flex-wrap: wrap;">
+  <div style="flex: 1 1 420px;">
+    <label for="input" style="display: block; margin-bottom: 6px; font-weight: 600;">Входной JSON</label>
+    <textarea id="input" spellcheck="false" style="width: 100%; box-sizing: border-box; min-height: 360px; font-family: ui-monospace, monospace; font-size: 13px; padding: 10px; border: 1px solid #ccc; border-radius: 8px;" placeholder='{
+  "name": "Дифференциальный манометр testo 510",
+  "manufacturer": "Testo",
+  "category": "Манометры",
+  "specs": {"Диапазон измерений": "0…100 гПа"},
+  "description": "Прибор для измерения перепада давления."
+}'></textarea>
+    <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
+      <button id="go" style="padding: 10px 22px; border: 0; border-radius: 8px; background: #2563eb; color: #fff; font-size: 15px; cursor: pointer;">Сгенерировать</button>
+      <select id="format" style="padding: 8px; border: 1px solid #ccc; border-radius: 8px; background: #fff;">
+        <option value="json">JSON</option>
+        <option value="md">Markdown</option>
+      </select>
+      <span id="status" style="color: #666;"></span>
+    </div>
+  </div>
+  <div style="flex: 1 1 420px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+      <label style="font-weight: 600;">Результат</label>
+      <button id="copy" style="padding: 6px 14px; border: 1px solid #ccc; border-radius: 8px; background: #fff; cursor: pointer;" disabled>Копировать</button>
+    </div>
+    <textarea id="result" readonly spellcheck="false" style="width: 100%; box-sizing: border-box; min-height: 360px; font-family: ui-monospace, monospace; font-size: 13px; padding: 10px; border: 1px solid #ccc; border-radius: 8px; background: #f7f7f8;"></textarea>
+  </div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+$("go").addEventListener("click", async () => {
+  $("go").disabled = true;
+  $("copy").disabled = true;
+  $("status").style.color = "#666";
+  $("status").textContent = "Генерация… (может занять до минуты)";
+  $("result").value = "";
+  const fmt = $("format").value;
+  try {
+    const resp = await fetch("/generate?format=" + fmt, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: $("input").value,
+    });
+    const text = await resp.text();
+    if (!resp.ok) {
+      let msg = text;
+      try { msg = JSON.parse(text).detail; } catch (e) {}
+      $("status").textContent = "Ошибка " + resp.status + ": " + msg;
+      $("status").style.color = "#c0392b";
+    } else {
+      if (fmt === "json") {
+        $("result").value = JSON.stringify(JSON.parse(text), null, 2);
+      } else {
+        $("result").value = text;
+      }
+      $("copy").disabled = false;
+      $("status").textContent = "Готово.";
+      $("status").style.color = "#0a7d32";
+    }
+  } catch (e) {
+    $("status").textContent = "Ошибка запроса: " + e;
+    $("status").style.color = "#c0392b";
+  } finally {
+    $("go").disabled = false;
+  }
+});
+$("copy").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText($("result").value);
+    $("status").textContent = "Скопировано в буфер обмена.";
+  } catch (e) {
+    $("result").select();
+    document.execCommand("copy");
+    $("status").textContent = "Скопировано.";
+  }
+});
+</script>
+</body>
+</html>
